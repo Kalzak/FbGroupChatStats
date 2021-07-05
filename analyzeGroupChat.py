@@ -1,5 +1,6 @@
 import sys
 import json
+import copy
 
 def main():
     #Check if the user has provided a file to analyze
@@ -24,16 +25,20 @@ def main():
     reactionsMade = dict.fromkeys(participants, 0)
     #This tracks how many reactions each participant received
     reactionsReceived = dict.fromkeys(participants, 0)
+    #This tracks the most reacted message. The string is the message or image URL
+    #The integer is the total number of reactions
+    mostReactedMessage = ['',0]
 
     calcMessagesSent(chat, messagesSent)
     calcImagesSent(chat, imagesSent)
-    calcReactions(chat, reactionsMade, reactionsReceived)
+    calcReactions(chat, reactionsMade, reactionsReceived, mostReactedMessage)
 
     #Print the results
-    print('Messages sent:\n', messagesSent)
-    print('Images sent:\n', imagesSent)
-    print('Reactions:\n', reactionsMade)
-    print('Reactions received:\n', reactionsReceived)
+    print('Messages sent:\n', messagesSent, '\n')
+    print('Images sent:\n', imagesSent, '\n')
+    print('Reactions:\n', reactionsMade, '\n')
+    print('Reactions received:\n', reactionsReceived, '\n')
+    print('Most reacted message:\n', messageToString(mostReactedMessage[0]), '\n')
 
 #Counts the total number of messages sent by each participant
 def calcMessagesSent(chat, messagesSent):
@@ -54,7 +59,7 @@ def calcImagesSent(chat, imagesSent):
             imagesSent[message['sender_name']] = imagesSent[message['sender_name']] + numImagesSent   
 
 #Counts the total number of reactions each participant made
-def calcReactions(chat, reactionsMade, reactionsReceived):
+def calcReactions(chat, reactionsMade, reactionsReceived, mostReactedMessage):
     #For every message
     for message in chat['messages']:
         #If a message has a reaction
@@ -64,11 +69,26 @@ def calcReactions(chat, reactionsMade, reactionsReceived):
             for reaction in message['reactions']: 
                 if reaction not in reactions:
                     reactions.append(reaction)
+            #If the number of reactions is greater than the most reacted message
+            if len(reactions) > mostReactedMessage[1]:
+                #Update the most reacted message with this message
+                mostReactedMessage[0] = message
+                mostReactedMessage[1] = len(reactions)
             #Update the reactionsMade values for each person who reacted
             for reaction in reactions:
                 reactionsMade[reaction['actor']] = reactionsMade[reaction['actor']] + 1
             #Update the reactionsReceived values for the message sender
             reactionsReceived[message['sender_name']] = reactionsReceived[message['sender_name']] + len(reactions)
+
+#Returns a message in string format with sender, message and image urls (if any)
+def messageToString(message):
+    messageString = 'Author: ' + message['sender_name'] + '\n'
+    if 'content' in message:
+        messageString = messageString + 'Message: ' + message['content'] + '\n'
+    if 'photos' in message:
+        for image in message['photos']:
+            messageString = messageString + 'Image: ' + image['uri'] + '\n'
+    return messageString
 
 if __name__ == "__main__":
     main()
